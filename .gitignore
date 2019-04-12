@@ -5,3 +5,5 @@ exp/
 *_pickle
 /*.csv
 /*.png
+.idea
+test.py
