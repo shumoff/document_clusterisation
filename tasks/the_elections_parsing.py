@@ -17,7 +17,7 @@ tik_links = tree.xpath('//a[@style="text-decoration: none"]/@href')  # полу�
 
 def rename(expr):
     if expr[1] == 'Территориальная избирательная комиссия':
-        return 'lec' + str(expr[2])
+        return 'tec' + str(expr[2])
     elif expr[1] == 'УИК':
         return str(expr[2])
     elif expr[0] == 'Цифровые избирательные участки':
@@ -64,6 +64,7 @@ for link_num, tik_link in enumerate(tik_links):
             field_rows_list.append(field_values_list.copy())
         field_rows_list.pop(-4)
         field_rows_list[0] *= len(field_values_list)  # дублируем название ТИК, реализуя соотношение one to many
+
     else:  # у страницы цифровых избирательных участков другая разметка, спарсим её отдельно
         table = tree.xpath('//table[@cellpadding="2"][@border="0"][@bgcolor="#ffffff"][@cellspacing="1"]')
         # нашли таблицу
@@ -81,13 +82,10 @@ for link_num, tik_link in enumerate(tik_links):
             field_values_list.append(field_text)
             field_rows_list.append(field_values_list.copy())
         field_rows_list.pop(-4)
-        print(field_rows_list, '\n', field_values_list)
 
     #  заменим названия УИК только на цифры
     field_rows_list[1] = list(map(lambda x: re.sub(r'([а-яА-Я]{3}) №(\d+)', rename, x), field_rows_list[1]))
     temp_dict = dict(zip(field_keys_list, field_rows_list))  # составляем буферный словарь из сгенерированных списков
-    if link_num == 30:
-        print(temp_dict)
 
     if not link_num:  # если в первый раз, то задаём конечный словарь
         data_dict = temp_dict.copy()
@@ -117,5 +115,10 @@ df = df.rename(columns={'ТИК': 'TIK', 'УИК': 'UIK',
                         'Амосов Михаил Иванович': 'amosov', 'Беглов Александр Дмитриевич': 'beglov',
                         'Тихонова Надежда Геннадьевна': 'tikhonova'})
 
+# добавим недостающие поля (проще так, чем парсить)
+df['amosov_share'] = df['amosov'] / (df['valid_ballots'] + df['spoiled_ballots']) * 100
+df['beglov_share'] = df['beglov'] / (df['valid_ballots'] + df['spoiled_ballots']) * 100
+df['tikhonova_share'] = df['tikhonova'] / (df['valid_ballots'] + df['spoiled_ballots']) * 100
+df['turnout(%)'] = (df['distant_ballots'] + df['local_ballots']) / df['total_voters'] * 100
+
 df.to_csv(index=False, path_or_buf='data.csv')
-print(df.head())
